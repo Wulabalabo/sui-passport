@@ -19,8 +19,10 @@ use sui_passport::stamp::{
     Event,
     new,
     event_name,
-    transfer_stamp
+    transfer_stamp,
+    event_id
 };
+
 
 const PK: vector<u8> = vector[93,51,18,189,20,112,56,203,181,234,192,63,104,62,182,60,129,208,40,0,33,50,233,136,70,68,220,141,131,226,106,38];
 
@@ -28,6 +30,7 @@ const PK: vector<u8> = vector[93,51,18,189,20,112,56,203,181,234,192,63,104,62,1
 public struct ClaimStampEvent has copy, drop {
     recipient: address,
     event: String,
+    event_id: ID,
     stamp: ID,
 }
 
@@ -60,10 +63,12 @@ public fun claim_stamp(
 
     emit(ClaimStampEvent {
         recipient: sender,
+        event_id: event_id(event),
         event: event_name(event),
         stamp: object::id(&stamp),
     });
 
-    show_stamp(passport, &stamp, clock);
+
+    show_stamp(passport, event, &stamp, clock);
     transfer_stamp(stamp, sender);
 }

@@ -28,6 +28,7 @@ public struct Event has key {
     event: String,
     description: String,
     stamp_type: vector<String>,
+    limit: u8,
 }
 
 #[allow(unused_field)]
@@ -45,6 +46,7 @@ public struct Stamp has key {
     image_url: String,
     points: u64,
     event: String,
+    event_id: ID,
     description: String,
 }
 
@@ -104,6 +106,7 @@ public fun create_event(
     event_record: &mut EventRecord,
     event: String, 
     description: String,
+    limit: u8,
     ctx: &mut TxContext
 ): Event {
     let new_event = Event {
@@ -111,6 +114,7 @@ public fun create_event(
         event,
         description,
         stamp_type: vector::empty(),
+        limit,
     };
     table::add<String, ID>(&mut event_record.record, event, object::id(&new_event));
     new_event
@@ -188,7 +192,8 @@ public(package) fun new(
     name: String,
     ctx: &mut TxContext
 ): Stamp {
-    assert!(event.stamp_type.contains(&name));
+    assert!(event.stamp_type.contains(&name));    
+    let event_id = object::id(event);
     let stamp_info = df::borrow_mut<String, StampMintInfo>(&mut event.id, name);
     stamp_info.count = stamp_info.count + 1;
     let mut stamp_name = name;
@@ -200,6 +205,7 @@ public(package) fun new(
         image_url: stamp_info.image_url,
         points: stamp_info.points,
         event: event.event,
+        event_id,
         description: stamp_info.description,
     }
 }
@@ -234,3 +240,12 @@ public fun event(stamp: &Stamp): String {
 public fun event_name(event: &Event): String {
     event.event
 }
+
+public fun event_id(event: &Event): ID {
+    object::id(event)
+}
+
+public fun event_limit(event: &Event): u8 {
+    event.limit
+}
+

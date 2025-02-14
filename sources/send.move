@@ -16,6 +16,7 @@ use sui_passport::stamp::{
 
 public struct SendStampEvent has copy, drop {
     recipient: address,
+    event_id: ID,
     event: String,
     stamp: ID,
 }
@@ -30,10 +31,12 @@ public fun send_stamp(
     let stamp = new(event, name, ctx);
     emit(SendStampEvent {
         recipient,
+        event_id: object::id(event),
         event: event_name(event),
         stamp: object::id(&stamp),
     });
     transfer_stamp(stamp, recipient);
+
 }
 
 public fun batch_send_stamp(
@@ -51,9 +54,11 @@ public fun batch_send_stamp(
         let stamp = new(event, name, ctx);
         emit(SendStampEvent {
             recipient,
+            event_id: object::id(event),
             event: event_name(event),
             stamp: object::id(&stamp),
         });
+
         transfer_stamp(stamp, recipient);
         i = i + 1;
     };

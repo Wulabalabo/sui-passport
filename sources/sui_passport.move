@@ -10,7 +10,7 @@ use sui::{
     display,
     package
 };
-use sui_passport::stamp::{Self, Stamp};
+use sui_passport::stamp::{Self, Stamp, event_limit, Event, event_id};
 
 public struct SUI_PASSPORT has drop {}
 
@@ -20,6 +20,7 @@ const EXHIBIT_MAX: u64 = 3;
 // ====== Errors =======
 const ETooMuchExhibit: u64 = 1000;
 const EInvalidExhibit: u64 = 1001;
+const EEventLimit: u64 = 1002;
 
 #[allow(unused_field)]
 public struct SuiPassport has key {
@@ -29,6 +30,7 @@ public struct SuiPassport has key {
     introduction: String,
     exhibit: vector<ID>,
     collections: Table<ID, bool>,
+    event_collections: Table<ID, u8>,
     points: u64,
     x: String,
     github: String,
@@ -115,6 +117,7 @@ public fun mint_passport(
         introduction,
         exhibit: vector::empty<ID>(),
         collections: table::new<ID, bool>(ctx),
+        event_collections: table::new<ID, u8>(ctx),
         points: 0,
         x,
         github,
@@ -143,10 +146,12 @@ public fun drop_passport(
     let SuiPassport {
         id,
         collections,
+        event_collections,
         ..
     } = passport;
     object::delete(id);
     table::drop<ID, bool>(collections);
+    table::drop<ID, u8>(event_collections);
 }
 
 public fun edit_passport(
@@ -187,10 +192,15 @@ public fun edit_passport(
 }
 
 public fun show_stamp(
-    passport: &mut SuiPassport, 
+    passport: &mut SuiPassport,
+    event: &Event,
     stamp: &Stamp, 
     clock: &Clock
 ) {
+    let event_id = event_id(event); 
+    let event_limit = event_limit(event);
+    
+    assert!(event_limit >= passport.event_collections[event_id], EEventLimit);
     let stamp_id = object::id(stamp);
 
     if (table::contains<ID, bool>(&passport.collections, stamp_id)) {
@@ -199,6 +209,7 @@ public fun show_stamp(
     } else {
         passport.points = passport.points + stamp::points(stamp);
         table::add<ID, bool>(&mut passport.collections, stamp_id, true);
+        table::add<ID, u8>(&mut passport.event_collections, event_id, 1);
     };
     passport.last_time = clock::timestamp_ms(clock);
 }
